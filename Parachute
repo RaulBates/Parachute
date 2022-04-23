@@ -1,0 +1,139 @@
+mod common {
+    pub trait Shape {
+        fn draw(
+            &self,
+            entity: &Entity,
+        );
+        fn change_color(
+            &mut self,
+            color: String,
+        );
+    }
+
+    pub trait Animator {
+        fn animate(
+            &mut self,
+            entity: &mut Entity,
+        );
+    }
+
+    #[derive(Debug)]
+    pub struct Pos {
+        pub x: f64,
+        pub y: f64,
+    }
+
+    pub struct Entity {
+        pos: Pos,
+        shape: Box<dyn Shape>,
+        animator: Box<dyn Animator>,
+    }
+
+    impl Entity {
+        pub fn new(
+            pos: Pos,
+            shape: Box<dyn Shape>,
+            animator: Box<dyn Animator>,
+        ) -> Self {
+            Self {
+                pos,
+                shape,
+                animator,
+            }
+        }
+
+        pub fn pos(&self) -> &Pos {
+            &self.pos
+        }
+
+        pub fn pos_mut(&mut self) -> &mut Pos {
+            &mut self.pos
+        }
+
+        pub fn change_color(
+            &mut self,
+            color: String,
+        ) {
+            self.shape.change_color(color);
+        }
+
+        pub fn draw(&self) {
+            self.shape.draw(self);
+        }
+
+        pub fn animate(&mut self) {
+            let anim = &mut self.animator;
+            anim.animate(self);
+        }
+    }
+}
+
+mod custom {
+    use super::common::{Animator, Entity, Shape};
+
+    pub struct MyShape {
+        color: String,
+    }
+    impl MyShape {
+        pub fn new(color: String) -> Self {
+            Self { color }
+        }
+    }
+    impl Shape for MyShape {
+        fn draw(
+            &self,
+            entity: &Entity,
+        ) {
+            println!("draw at {:?} with {:?}", entity.pos(), self.color);
+        }
+        fn change_color(
+            &mut self,
+            color: String,
+        ) {
+            self.color = color;
+        }
+    }
+
+    pub struct MyAnim {
+        count: i32,
+    }
+    impl MyAnim {
+        pub fn new() -> Self {
+            Self { count: 0 }
+        }
+    }
+    impl Animator for MyAnim {
+        fn animate(
+            &mut self,
+            entity: &mut Entity,
+        ) {
+            let pos = entity.pos_mut();
+            if (self.count % 2) == 0 {
+                pos.x += 0.1;
+                pos.y += 0.2;
+            } else {
+                pos.x += 0.2;
+                pos.y += 0.1;
+            }
+            self.count += 1;
+            if self.count >= 3 {
+                entity.change_color("red".to_owned());
+            }
+        }
+    }
+}
+
+fn main() {
+    use common::{Entity, Pos};
+    use custom::{MyAnim, MyShape};
+    let mut entity = Entity::new(
+        Pos { x: 0.0, y: 0.0 },
+        Box::new(MyShape::new("green".to_owned())),
+        Box::new(MyAnim::new()),
+    );
+    entity.draw();
+    for _ in 0..5 {
+        entity.animate();
+        entity.draw();
+    }
+}
